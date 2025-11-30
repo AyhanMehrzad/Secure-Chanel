@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>System Access</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="login-body">
+    <div class="login-container">
+        <div class="glitch-wrapper">
+            <h1 class="glitch" data-text="ACCESS CONTROL">ACCESS CONTROL</h1>
+        </div>
+        {% if error %}
+            <div class="error-msg">{{ error }}</div>
+        {% endif %}
+        <form method="POST" action="/">
+            <div class="input-group">
+                <input type="text" name="username" placeholder="Identity" required autocomplete="off">
+            </div>
+            <div class="input-group">
+                <input type="password" name="password" placeholder="Key" required autocomplete="off">
+            </div>
+            <button type="submit" class="btn-login">AUTHENTICATE</button>
+        </form>
+    </div>
+</body>
+</html>
