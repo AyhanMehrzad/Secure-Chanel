@@ -219,7 +219,7 @@ socket.on('chat_message', (data) => {
     addMessage(data, true); // true = show notification for new messages
 });
 
-socket.on('clear_history', () => {
+socket.on('clear_history', (data) => {
     // Clear chat window (in case it wasn't cleared by button click)
     if (chatWindow) {
         // Stop any ongoing recordings
@@ -240,8 +240,14 @@ socket.on('clear_history', () => {
         // Add a system note
         const div = document.createElement('div');
         div.className = 'message other';
-        div.innerText = '⚠️ HISTORY WIPED';
+        const wiper = data && data.user ? data.user : 'SOMEONE';
+        div.innerText = `⚠️ HISTORY WIPED BY ${wiper.toUpperCase()}`;
         chatWindow.appendChild(div);
+
+        // Show notification if it wasn't me
+        if (data && data.user && data.user !== myUsername) {
+            showBrowserNotification('System', `${data.user} wiped the chat history.`);
+        }
 
         // Remove system message after delay (non-blocking)
         const timeoutId = setTimeout(() => {
@@ -463,14 +469,17 @@ function addMessage(data, showNotification = true) {
         };
 
         // Set source
-        if (data.msg && data.msg.startsWith('data:')) {
-            audio.src = data.msg;
-        } else {
-            console.error('Invalid audio data format');
-            div.innerText = '🔊 Audio message (invalid format)';
-            chatWindow.appendChild(div);
-            chatWindow.scrollTop = chatWindow.scrollHeight;
-            return;
+        // Set source
+        if (data.msg) {
+            if (data.msg.startsWith('data:') || data.msg.startsWith('blob:') || data.msg.startsWith('http') || data.msg.startsWith('/')) {
+                audio.src = data.msg;
+            } else {
+                console.error('Invalid audio data format');
+                div.innerText = '🔊 Audio message (invalid format)';
+                chatWindow.appendChild(div);
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+                return;
+            }
         }
 
         audioWrapper.appendChild(audio);
@@ -560,16 +569,16 @@ function addMessage(data, showNotification = true) {
     chatWindow.appendChild(div);
     chatWindow.scrollTop = chatWindow.scrollHeight;
 
-    // Show browser notification for new messages from others
-    if (showNotification && !isMe) {
-        if (data.type === 'text') {
-            showBrowserNotification(data.user, data.msg);
-        } else if (data.type === 'audio') {
-            showBrowserNotification(data.user, '🔊 sent an audio message');
-        } else if (data.type === 'video') {
-            showBrowserNotification(data.user, '📹 sent a video message');
-        }
-    }
+    // Show browser notification for new messages from others - DISABLED per user request
+    // if (showNotification && !isMe) {
+    //     if (data.type === 'text') {
+    //         showBrowserNotification(data.user, data.msg);
+    //     } else if (data.type === 'audio') {
+    //         showBrowserNotification(data.user, '🔊 sent an audio message');
+    //     } else if (data.type === 'video') {
+    //         showBrowserNotification(data.user, '📹 sent a video message');
+    //     }
+    // }
 }
 
 btnSend.addEventListener('click', sendMessage);
@@ -750,6 +759,15 @@ async function startAudioRecording(e) {
 
                     // Send message
                     socket.emit('chat_message', { msg: base64data, type: 'audio' });
+
+                    // Show locally immediately
+                    addMessage({
+                        user: myUsername,
+                        msg: base64data, // Or use a blob URL if preferred for performance
+                        type: 'audio',
+                        timestamp: Date.now() / 1000
+                    }, false);
+
                     console.log('🎙️ Audio message sent and cached');
                 };
             }

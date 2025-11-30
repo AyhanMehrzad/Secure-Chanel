@@ -65,33 +65,38 @@ class MessageStore:
         """Remove oldest messages until under size limit"""
         with self.lock:
             conn = sqlite3.connect(self.db_path, check_same_thread=False)
-            cursor = conn.cursor()
-            
-            # Delete oldest 10% of messages at a time
-            while self._get_db_size() > MAX_DB_SIZE_BYTES * 0.9:  # Clean until 90% of limit
-                cursor.execute('''
-                    SELECT id FROM messages 
-                    ORDER BY timestamp ASC 
-                    LIMIT 100
-                ''')
-                ids_to_delete = [row[0] for row in cursor.fetchall()]
+            try:
+                cursor = conn.cursor()
                 
-                if not ids_to_delete:
-                    break
+                # Delete oldest 10% of messages at a time
+                while self._get_db_size() > MAX_DB_SIZE_BYTES * 0.9:  # Clean until 90% of limit
+                    cursor.execute('''
+                        SELECT id FROM messages 
+                        ORDER BY timestamp ASC 
+                        LIMIT 100
+                    ''')
+                    ids_to_delete = [row[0] for row in cursor.fetchall()]
+                    
+                    if not ids_to_delete:
+                        break
+                    
+                    placeholders = ','.join('?' * len(ids_to_delete))
+                    cursor.execute(f'DELETE FROM messages WHERE id IN ({placeholders})', ids_to_delete)
+                    conn.commit()
+                    
+                    print(f"🗑️ Deleted {len(ids_to_delete)} oldest messages")
                 
-                placeholders = ','.join('?' * len(ids_to_delete))
-                cursor.execute(f'DELETE FROM messages WHERE id IN ({placeholders})', ids_to_delete)
-                conn.commit()
+                # Vacuum to reclaim space
+                # Switch to autocommit mode for VACUUM
+                conn.isolation_level = None
+                cursor.execute('VACUUM')
                 
-                print(f"🗑️ Deleted {len(ids_to_delete)} oldest messages")
-            
-            # Vacuum to reclaim space
-            cursor.execute('VACUUM')
-            conn.commit()
-            conn.close()
-            
-            final_size = self._get_db_size()
-            print(f"✅ Cleanup complete. Database size: {final_size / 1024 / 1024:.2f}MB")
+                final_size = self._get_db_size()
+                print(f"✅ Cleanup complete. Database size: {final_size / 1024 / 1024:.2f}MB")
+            except Exception as e:
+                print(f"❌ Error in cleanup: {e}")
+            finally:
+                conn.close()
     
     def save_message(self, user: str, message: str, message_type: str = 'text', timestamp: Optional[float] = None) -> int:
         """Save a message and return its ID"""
@@ -150,12 +155,25 @@ class MessageStore:
         """Clear all messages (for self-destruct)"""
         with self.lock:
             conn = sqlite3.connect(self.db_path, check_same_thread=False)
-            cursor = conn.cursor()
-            cursor.execute('DELETE FROM messages')
-            cursor.execute('VACUUM')
-            conn.commit()
-            conn.close()
-            print("🗑️ All messages cleared")
+            try:
+                cursor = conn.cursor()
+                cursor.execute('DELETE FROM messages')
+                conn.commit() # Commit the deletion first
+                
+                # VACUUM must be run outside of a transaction
+                # Switch to autocommit mode for VACUUM
+                conn.isolation_level = None
+                cursor.execute('VACUUM')
+                
+                # Restore default isolation level (optional, but good practice if we reused conn)
+                conn.isolation_level = '' 
+                
+                print("🗑️ All messages cleared")
+            except Exception as e:
+                print(f"❌ Error in clear_all: {e}")
+                raise e
+            finally:
+                conn.close()
     
     def get_stats(self) -> Dict:
         """Get database statistics"""

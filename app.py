@@ -216,11 +216,12 @@ def handle_message(data):
 @socketio.on('clear_history')
 def handle_clear_history():
     try:
+        username = active_sessions.get(request.sid, 'Unknown')
         # Clear server-side storage
         message_store.clear_all()
         # Broadcast command to clear client-side history
-        emit('clear_history', room='secure_channel')
-        print(f"History cleared by {active_sessions.get(request.sid, 'Unknown')}")
+        emit('clear_history', {'user': username}, room='secure_channel')
+        print(f"History cleared by {username}")
     except Exception as e:
         print(f"Error clearing history: {e}")
         emit('error', {'msg': 'Failed to clear history'}, room=request.sid)
