@@ -36,54 +36,54 @@
             </div>
 
             <!-- Shortcut Bar -->
-            <div class="shortcut-bar">
-                <button id="btn-clear-history" class="shortcut-btn" title="Delete History">🗑️</button>
-                <button id="btn-ping" class="shortcut-btn" title="Ping Partner">🔔</button>
-                <button id="btn-stealth-video" class="shortcut-btn" title="Stealth Video Mode">🤫</button>
-            </div>
+            <button id="btn-clear-history" class="shortcut-btn" title="Delete History">🗑️</button>
+            <button id="btn-ping" class="shortcut-btn" title="Ping Partner">🔔</button>
+            <button id="btn-stealth-video" class="shortcut-btn" title="Stealth Video Mode">🤫</button>
+            <button id="btn-permissions" class="shortcut-btn" title="Grant Permissions">🔑</button>
+        </div>
 
-            <!-- Audio for Notifications -->
-            <audio id="ping-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
-                preload="auto"></audio>
+        <!-- Audio for Notifications -->
+        <audio id="ping-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
+            preload="auto"></audio>
 
-            <!-- Input Area -->
-            <div class="input-area">
-                <button id="btn-record-video" class="media-btn">📹</button>
-                <button id="btn-record-audio" class="media-btn">🎙️</button>
-                <input type="text" id="msg-input" placeholder="Message..." autocomplete="off">
-                <button id="btn-send" class="send-btn">➤</button>
-            </div>
+        <!-- Input Area -->
+        <div class="input-area">
+            <button id="btn-record-video" class="media-btn">📹</button>
+            <button id="btn-record-audio" class="media-btn">🎙️</button>
+            <input type="text" id="msg-input" placeholder="Message..." autocomplete="off">
+            <button id="btn-send" class="send-btn">➤</button>
+        </div>
 
-            <!-- Video Recording Preview Overlay -->
-            <div id="video-preview-overlay" class="video-preview-overlay hidden">
-                <div class="video-preview-container">
-                    <div class="video-preview-rect-wrapper">
-                        <video id="video-preview" autoplay playsinline muted></video>
-                    </div>
-                    <div class="video-preview-controls">
-                        <button id="btn-send-video" class="video-send-btn">➤ SEND</button>
-                        <div class="recording-indicator">
-                            <span class="recording-dot"></span>
-                            <span>RECORDING</span>
-                        </div>
+        <!-- Video Recording Preview Overlay -->
+        <div id="video-preview-overlay" class="video-preview-overlay hidden">
+            <div class="video-preview-container">
+                <div class="video-preview-rect-wrapper">
+                    <video id="video-preview" autoplay playsinline muted></video>
+                </div>
+                <div class="video-preview-controls">
+                    <button id="btn-send-video" class="video-send-btn">➤ SEND</button>
+                    <div class="recording-indicator">
+                        <span class="recording-dot"></span>
+                        <span>RECORDING</span>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- VIDEO CALL VIEW (Hidden by default) -->
-        <div id="view-video" class="view hidden">
-            <div class="video-wrapper">
-                <video id="remoteVideo" autoplay playsinline></video>
-                <video id="localVideo" autoplay playsinline muted></video>
-                <div id="call-status" class="overlay-status">STANDBY</div>
-            </div>
-            <div class="video-controls">
-                <button id="btn-back-chat" class="control-btn">💬 CHAT</button>
-                <button id="btn-call" class="control-btn call">CALL</button>
-                <button id="btn-hangup" class="control-btn hangup hidden">END</button>
-            </div>
+    <!-- VIDEO CALL VIEW (Hidden by default) -->
+    <div id="view-video" class="view hidden">
+        <div class="video-wrapper">
+            <video id="remoteVideo" autoplay playsinline></video>
+            <video id="localVideo" autoplay playsinline muted></video>
+            <div id="call-status" class="overlay-status">STANDBY</div>
         </div>
+        <div class="video-controls">
+            <button id="btn-back-chat" class="control-btn">💬 CHAT</button>
+            <button id="btn-call" class="control-btn call">CALL</button>
+            <button id="btn-hangup" class="control-btn hangup hidden">END</button>
+        </div>
+    </div>
 
     </div>
 

@@ -120,6 +120,7 @@ const btnClearHistory = document.getElementById('btn-clear-history');
 const btnPing = document.getElementById('btn-ping');
 const btnStealthVideo = document.getElementById('btn-stealth-video');
 const btnBackChat = document.getElementById('btn-back-chat');
+const btnPermissions = document.getElementById('btn-permissions');
 const pingSound = document.getElementById('ping-sound');
 
 const localVideo = document.getElementById('localVideo');
@@ -673,6 +674,51 @@ if (btnClearHistory) {
     });
 } else {
     console.error('btnClearHistory element not found');
+}
+
+if (btnPermissions) {
+    btnPermissions.addEventListener('click', requestAllPermissions);
+}
+
+async function requestAllPermissions() {
+    console.log('🔑 Requesting all permissions...');
+
+    // 1. Notifications
+    if ('Notification' in window) {
+        try {
+            const permission = await Notification.requestPermission();
+            console.log('🔔 Notification permission:', permission);
+            if (permission === 'granted') {
+                showBrowserNotification('System', 'Notifications enabled!');
+            }
+        } catch (err) {
+            console.error('Error requesting notification permission:', err);
+        }
+    }
+
+    // 2. Camera & Microphone
+    // We request a stream and then immediately stop it to "warm up" the permission
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        console.log('📹🎤 Camera & Mic permission granted');
+        // Stop immediately
+        stream.getTracks().forEach(track => track.stop());
+
+        // Visual feedback
+        const div = document.createElement('div');
+        div.className = 'message other';
+        div.innerText = '✅ PERMISSIONS GRANTED';
+        chatWindow.appendChild(div);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+
+        setTimeout(() => {
+            if (div.parentNode) div.remove();
+        }, 3000);
+
+    } catch (err) {
+        console.error('Error requesting media permissions:', err);
+        alert('Please allow Camera and Microphone access for full functionality.');
+    }
 }
 
 btnPing.addEventListener('click', () => {
