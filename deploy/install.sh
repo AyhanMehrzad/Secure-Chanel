@@ -19,7 +19,7 @@ echo "Deploying from $PROJECT_DIR..."
 # 1. Install Dependencies
 echo "Installing system dependencies..."
 apt-get update
-apt-get install -y python3-pip python3-venv nginx
+apt-get install -y python3-pip python3-venv nginx certbot python3-certbot-nginx
 
 # 2. Set up Python Environment
 echo "Setting up Python virtual environment..."
@@ -70,5 +70,12 @@ rm -f /etc/nginx/sites-enabled/default
 
 nginx -t
 systemctl restart nginx
+73: 
+74: # 5. SSL Configuration (Certbot)
+75: echo "Configuring SSL with Certbot..."
+76: # Only run if domain is reachable (basic check) or force it
+77: certbot --nginx -d securechanel.xyz -d www.securechanel.xyz --non-interactive --agree-tos -m admin@securechanel.xyz --redirect
+78: 
+79: echo "Deployment complete! Your app should be live at https://securechanel.xyz"
 
 echo "Deployment complete! Your app should be live at http://$(curl -s ifconfig.me) or your server IP."
