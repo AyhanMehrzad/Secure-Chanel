@@ -309,13 +309,22 @@ window.addMessage = function (data, showNotification = true) {
 
 // --- Message Pagination / Infinite Scroll ---
 
-// Detect scroll to top
-if (chatWindow) {
-    chatWindow.addEventListener('scroll', () => {
-        if (chatWindow.scrollTop === 0 && !isLoadingMessages && hasMoreMessages) {
+// IntersectionObserver for scrolling to top
+const scrollSentinel = document.getElementById('scroll-sentinel');
+
+if (scrollSentinel && chatWindow) {
+    const observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && !isLoadingMessages && hasMoreMessages) {
+            // We are at the top!
+            console.log('🔄 Reached top, loading older messages...');
             loadOlderMessages();
         }
+    }, {
+        root: chatWindow,
+        threshold: 0.1
     });
+
+    observer.observe(scrollSentinel);
 }
 
 async function loadOlderMessages() {
