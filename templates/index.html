@@ -36,10 +36,12 @@
             </div>
 
             <!-- Shortcut Bar -->
-            <button id="btn-clear-history" class="shortcut-btn" title="Delete History">🗑️</button>
-            <button id="btn-ping" class="shortcut-btn" title="Ping Partner">🔔</button>
-            <button id="btn-stealth-video" class="shortcut-btn" title="Stealth Video Mode">🤫</button>
-            <button id="btn-permissions" class="shortcut-btn" title="Grant Permissions">🔑</button>
+            <div class="shortcut-bar">
+                <button id="btn-clear-history" class="shortcut-btn" title="Delete History">🗑️</button>
+                <button id="btn-ping" class="shortcut-btn" title="Ping Partner">🔔</button>
+                <button id="btn-stealth-video" class="shortcut-btn" title="Stealth Video Mode">🤫</button>
+                <button id="btn-permissions" class="shortcut-btn" title="Grant Permissions">🔑</button>
+            </div>
         </div>
 
         <!-- Audio for Notifications -->
@@ -50,8 +52,10 @@
         <div class="input-area">
             <button id="btn-record-video" class="media-btn">📹</button>
             <button id="btn-record-audio" class="media-btn">🎙️</button>
-            <input type="text" id="msg-input" placeholder="Message..." autocomplete="off">
-            <button id="btn-send" class="send-btn">➤</button>
+            <div class="input-wrapper">
+                <input type="text" id="msg-input" placeholder="Message..." autocomplete="off">
+                <button id="btn-send" class="send-btn">➤</button>
+            </div>
         </div>
 
         <!-- Video Recording Preview Overlay -->
