@@ -35,9 +35,18 @@ class MessageStore:
                     message TEXT NOT NULL,
                     message_type TEXT NOT NULL DEFAULT 'text',
                     timestamp REAL NOT NULL,
-                    created_at TEXT NOT NULL
+                    created_at TEXT NOT NULL,
+                    reply_to INTEGER,
+                    FOREIGN KEY (reply_to) REFERENCES messages(id)
                 )
             ''')
+            
+            # Migration: Add reply_to column if it doesn't exist
+            cursor.execute("PRAGMA table_info(messages)")
+            columns = [column[1] for column in cursor.fetchall()]
+            if 'reply_to' not in columns:
+                cursor.execute('ALTER TABLE messages ADD COLUMN reply_to INTEGER')
+                print("✅ Added reply_to column to messages table")
             
             # Create index on timestamp for faster cleanup
             cursor.execute('''
@@ -98,7 +107,7 @@ class MessageStore:
             finally:
                 conn.close()
     
-    def save_message(self, user: str, message: str, message_type: str = 'text', timestamp: Optional[float] = None) -> int:
+    def save_message(self, user: str, message: str, message_type: str = 'text', timestamp: Optional[float] = None, reply_to: Optional[int] = None) -> int:
         """Save a message and return its ID"""
         if timestamp is None:
             timestamp = datetime.now().timestamp()
@@ -108,9 +117,9 @@ class MessageStore:
             cursor = conn.cursor()
             
             cursor.execute('''
-                INSERT INTO messages (user, message, message_type, timestamp, created_at)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (user, message, message_type, timestamp, datetime.now().isoformat()))
+                INSERT INTO messages (user, message, message_type, timestamp, created_at, reply_to)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (user, message, message_type, timestamp, datetime.now().isoformat(), reply_to))
             
             message_id = cursor.lastrowid
             conn.commit()
@@ -131,7 +140,7 @@ class MessageStore:
             cursor = conn.cursor()
             
             cursor.execute('''
-                SELECT id, user, message, message_type, timestamp, created_at
+                SELECT id, user, message, message_type, timestamp, created_at, reply_to
                 FROM messages
                 ORDER BY timestamp DESC
                 LIMIT ?
@@ -145,11 +154,99 @@ class MessageStore:
                     'msg': row['message'],
                     'type': row['message_type'],
                     'timestamp': row['timestamp'],
-                    'created_at': row['created_at']
+                    'created_at': row['created_at'],
+                    'reply_to': row['reply_to']
                 })
             
             conn.close()
             return list(reversed(messages))  # Return in chronological order
+    
+    def get_messages_paginated(self, limit: int = 50, offset: int = 0) -> List[Dict]:
+        """Get messages with pagination support"""
+        with self.lock:
+            conn = sqlite3.connect(self.db_path, check_same_thread=False)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                SELECT id, user, message, message_type, timestamp, created_at, reply_to
+                FROM messages
+                ORDER BY timestamp DESC
+                LIMIT ? OFFSET ?
+            ''', (limit, offset))
+            
+            messages = []
+            for row in cursor.fetchall():
+                messages.append({
+                    'id': row['id'],
+                    'user': row['user'],
+                    'msg': row['message'],
+                    'type': row['message_type'],
+                    'timestamp': row['timestamp'],
+                    'created_at': row['created_at'],
+                    'reply_to': row['reply_to']
+                })
+            
+            conn.close()
+            return list(reversed(messages))  # Return in chronological order
+    
+    def get_messages_before(self, before_timestamp: float, limit: int = 50) -> List[Dict]:
+        """Get messages before a specific timestamp"""
+        with self.lock:
+            conn = sqlite3.connect(self.db_path, check_same_thread=False)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                SELECT id, user, message, message_type, timestamp, created_at, reply_to
+                FROM messages
+                WHERE timestamp < ?
+                ORDER BY timestamp DESC
+                LIMIT ?
+            ''', (before_timestamp, limit))
+            
+            messages = []
+            for row in cursor.fetchall():
+                messages.append({
+                    'id': row['id'],
+                    'user': row['user'],
+                    'msg': row['message'],
+                    'type': row['message_type'],
+                    'timestamp': row['timestamp'],
+                    'created_at': row['created_at'],
+                    'reply_to': row['reply_to']
+                })
+            
+            conn.close()
+            return list(reversed(messages))  # Return in chronological order
+    
+    def get_message_by_id(self, message_id: int) -> Optional[Dict]:
+        """Get a specific message by ID (for reply context)"""
+        with self.lock:
+            conn = sqlite3.connect(self.db_path, check_same_thread=False)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                SELECT id, user, message, message_type, timestamp, created_at, reply_to
+                FROM messages
+                WHERE id = ?
+            ''', (message_id,))
+            
+            row = cursor.fetchone()
+            conn.close()
+            
+            if row:
+                return {
+                    'id': row['id'],
+                    'user': row['user'],
+                    'msg': row['message'],
+                    'type': row['message_type'],
+                    'timestamp': row['timestamp'],
+                    'created_at': row['created_at'],
+                    'reply_to': row['reply_to']
+                }
+            return None
     
     def clear_all(self):
         """Clear all messages (for self-destruct)"""

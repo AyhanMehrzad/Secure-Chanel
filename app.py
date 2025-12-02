@@ -129,6 +129,7 @@ def api_user():
         'is_authenticated': True
     }), 200
 
+
 @app.route('/api/messages/recent')
 def get_recent_messages():
     """Get recent messages (for reconnection/recovery)"""
@@ -138,6 +139,42 @@ def get_recent_messages():
     limit = request.args.get('limit', 50, type=int)
     messages = message_store.get_recent_messages(limit=limit)
     return jsonify({'messages': messages}), 200
+
+@app.route('/api/messages/paginated')
+def get_paginated_messages():
+    """Get messages with pagination support"""
+    if 'user' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    limit = request.args.get('limit', 50, type=int)
+    offset = request.args.get('offset', 0, type=int)
+    messages = message_store.get_messages_paginated(limit=limit, offset=offset)
+    return jsonify({'messages': messages, 'limit': limit, 'offset': offset}), 200
+
+@app.route('/api/messages/before')
+def get_messages_before():
+    """Get messages before a specific timestamp"""
+    if 'user' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    before_timestamp = request.args.get('before', type=float)
+    if not before_timestamp:
+        return jsonify({'error': 'Missing before parameter'}), 400
+    
+    limit = request.args.get('limit', 50, type=int)
+    messages = message_store.get_messages_before(before_timestamp, limit=limit)
+    return jsonify({'messages': messages, 'has_more': len(messages) == limit}), 200
+
+@app.route('/api/messages/<int:message_id>')
+def get_message(message_id):
+    """Get a specific message by ID"""
+    if 'user' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    message = message_store.get_message_by_id(message_id)
+    if message:
+        return jsonify({'message': message}), 200
+    return jsonify({'error': 'Message not found'}), 404
 
 @app.route('/api/upload', methods=['POST'])
 def upload_file():
@@ -191,27 +228,39 @@ def on_disconnect():
         del active_sessions[request.sid]
         emit('system_message', {'msg': f'{username} disconnected.'}, room='secure_channel')
 
+
 @socketio.on('chat_message')
 def handle_message(data):
-    # Data structure: { 'msg': '...', 'type': 'text'|'audio'|'video', 'user': ... }
+    # Data structure: { 'msg': '...', 'type': 'text'|'audio'|'video', 'reply_to': <id> }
     username = active_sessions.get(request.sid, 'Unknown')
     message_text = data.get('msg', '')
     message_type = data.get('type', 'text')
+    reply_to = data.get('reply_to', None)
     timestamp = time.time()
     
     # Save message to storage
+    message_id = None
     if message_text:
-        message_store.save_message(username, message_text, message_type, timestamp)
+        message_id = message_store.save_message(username, message_text, message_type, timestamp, reply_to)
+    
+    # Fetch reply context if replying to a message
+    reply_context = None
+    if reply_to:
+        reply_context = message_store.get_message_by_id(reply_to)
     
     # Broadcast to all clients
     message_data = {
+        'id': message_id,
         'user': username,
         'msg': message_text,
         'type': message_type,
-        'timestamp': timestamp
+        'timestamp': timestamp,
+        'reply_to': reply_to,
+        'reply_context': reply_context
     }
     
     emit('chat_message', message_data, room='secure_channel', include_self=False)
+
 
 @socketio.on('clear_history')
 def handle_clear_history():
