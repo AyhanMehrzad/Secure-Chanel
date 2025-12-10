@@ -4,9 +4,13 @@ import threading
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from flask_socketio import SocketIO, emit, join_room, leave_room, disconnect
+from flask_cors import CORS
 from message_store import MessageStore
 
 app = Flask(__name__)
+# Enable CORS for React dev server (port 3000) interacting with Flask (port 5000)
+CORS(app, resources={r"/*": {"origins": ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5000", "http://127.0.0.1:5000", "http://0.0.0.0:5000"]}}, supports_credentials=True)
+
 app.config['SECRET_KEY'] = os.urandom(24)
 app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB limit
@@ -15,7 +19,7 @@ app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB limit
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 socketio = SocketIO(
     app, 
-    cors_allowed_origins="*",
+    cors_allowed_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5000", "http://127.0.0.1:5000", "http://0.0.0.0:5000"],
     max_http_buffer_size=50 * 1024 * 1024,  # 50MB for large video files
     ping_timeout=60,  # Increase timeout for large file transfers
     ping_interval=25,  # Keep default ping interval
@@ -61,6 +65,10 @@ def check_block():
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if 'user' in session:
+        # If user is logged in, redirect to dashboard or just return success if it's an API call?
+        # For React app integration, if this is hit by fetch, we want to know it's a success.
+        if request.headers.get('Accept') == 'application/json':
+            return jsonify({'status': 'logged_in', 'user': session['user']})
         return redirect(url_for('dashboard'))
 
     if request.method == 'POST':
@@ -69,8 +77,12 @@ def login():
         
         if username in users and users[username] == password:
             session['user'] = username
+            if request.headers.get('Accept') == 'application/json':
+                return jsonify({'status': 'success', 'user': username})
             return redirect(url_for('dashboard'))
         else:
+            if request.headers.get('Accept') == 'application/json':
+                return jsonify({'error': 'Invalid Credentials'}), 401
             return render_template('login.html', error="Invalid Credentials")
             
     return render_template('login.html')
@@ -259,7 +271,7 @@ def handle_message(data):
         'reply_context': reply_context
     }
     
-    emit('chat_message', message_data, room='secure_channel', include_self=False)
+    emit('chat_message', message_data, room='secure_channel', include_self=True)
 
 
 @socketio.on('clear_history')
