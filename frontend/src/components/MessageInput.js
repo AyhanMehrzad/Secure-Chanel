@@ -67,6 +67,8 @@ const MessageInput = ({ onSend, onSocketAction }) => {
             setText('');
             if (textareaRef.current) {
                 textareaRef.current.style.height = 'auto';
+                // Keep focus to prevent keyboard from closing on mobile
+                textareaRef.current.focus();
             }
         }
     };

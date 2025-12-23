@@ -3,6 +3,12 @@ import React, { useEffect, useRef, useState } from 'react';
 const Message = ({ msg, user, setReplyTo }) => {
   const isMe = msg.user === user;
 
+  // Helper to detect RTL characters (Arabic, Persian, Hebrew)
+  const isRTL = (text) => {
+    const rtlChar = /[\u0591-\u07FF\uFB1D-\uFDFD\uFE70-\uFEFC]/;
+    return rtlChar.test(text);
+  };
+
   const renderContent = () => {
     switch (msg.type) {
       case 'image':
@@ -20,7 +26,8 @@ const Message = ({ msg, user, setReplyTo }) => {
           </a>
         );
       default:
-        return <div className="msg-text">{msg.msg}</div>;
+        const direction = isRTL(msg.msg) ? 'rtl' : 'ltr';
+        return <div className="msg-text" style={{ direction: direction, textAlign: direction === 'rtl' ? 'right' : 'left' }}>{msg.msg}</div>;
     }
   };
 
