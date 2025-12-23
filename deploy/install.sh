@@ -62,8 +62,18 @@ sed -i 's/Listen 80/Listen 8080/' /etc/apache2/ports.conf
 sed -i 's/<VirtualHost \*:80>/<VirtualHost *:8080>/' /etc/apache2/sites-available/000-default.conf
 
 # Restart Apache to apply changes
-systemctl enable apache2
-systemctl restart apache2
+echo "Checking Apache configuration..."
+if apachectl configtest; then
+    systemctl enable apache2
+    if ! systemctl restart apache2; then
+        echo "WARNING: Apache2 failed to start. Checking logs..."
+        journalctl -xeu apache2.service | tail -n 20
+        echo "Check if port 8080 is free:"
+        netstat -tulpn | grep 8080 || echo "Port 8080 is free or netstat failed"
+    fi
+else
+    echo "ERROR: Apache configuration test failed!"
+fi
 
 NGINX_TEMPLATE="$SCRIPT_DIR/messageapp.nginx.template"
 NGINX_FILE="$SCRIPT_DIR/messageapp.nginx"
