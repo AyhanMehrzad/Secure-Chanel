@@ -3,11 +3,12 @@ Description=Gunicorn instance to serve Message App
 After=network.target
 
 [Service]
-User=root
+User=rupper
 Group=www-data
-WorkingDirectory=/home/rupper/Desktop/messageapp
-Environment="PATH=/home/rupper/Desktop/messageapp/venv/bin"
-ExecStart=/home/rupper/Desktop/messageapp/venv/bin/gunicorn --config gunicorn_config.py app:app
+WorkingDirectory=/home/rupper/Desktop/web
+Environment="PATH=/home/rupper/Desktop/web/venv/bin"
+ExecStart=/home/rupper/Desktop/web/venv/bin/gunicorn --config gunicorn_config.py app:app
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
