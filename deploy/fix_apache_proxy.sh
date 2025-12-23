@@ -42,8 +42,6 @@ cat > /etc/apache2/sites-available/000-default.conf <<EOL
     RewriteEngine On
     RewriteCond %{HTTP:Upgrade} =websocket [NC]
     RewriteRule /(.*)           ws://127.0.0.1:5000/$1 [P,L]
-    RewriteCond %{HTTP:Upgrade} !=websocket [NC]
-    RewriteRule /(.*)           http://127.0.0.1:5000/$1 [P,L]
 
     # Proxy Configuration
     ProxyPreserveHost On
