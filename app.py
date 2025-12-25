@@ -61,11 +61,11 @@ def send_telegram_notification(chat_id, message):
         try:
             with open(status_file, "r") as f:
                 proxy_url = f.read().strip()
+                # If the manager is running but found nothing, we should honor that
+                # and not fallback to a potentially broken environment variable
         except:
-            pass
-            
-    # Fallback to env var if status file is empty/missing
-    if not proxy_url:
+            proxy_url = os.environ.get('TELEGRAM_PROXY')
+    else:
         proxy_url = os.environ.get('TELEGRAM_PROXY')
 
     print(f"DEBUG: Attempting Telegram notification to {chat_id} (Proxy: {proxy_url if proxy_url else 'None'})")
