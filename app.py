@@ -53,15 +53,29 @@ USER_TELEGRAM_MAPPING = {
 }
 
 def send_telegram_notification(chat_id, message):
-    """Send a basic telegram notification using urllib"""
+    """Send a basic telegram notification with proxy support and logging"""
+    proxy_url = os.environ.get('TELEGRAM_PROXY')
+    print(f"DEBUG: Attempting Telegram notification to {chat_id} (Proxy: {proxy_url if proxy_url else 'None'})")
+    
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-        data = urllib.parse.urlencode({'chat_id': chat_id, 'text': message}).encode('utf-8')
-        req = urllib.request.Request(url, data=data)
-        with urllib.request.urlopen(req, timeout=5) as response:
+        params = urllib.parse.urlencode({'chat_id': chat_id, 'text': message})
+        full_url = f"{url}?{params}"
+        
+        # Configure proxy if available
+        if proxy_url:
+            proxy_handler = urllib.request.ProxyHandler({'http': proxy_url, 'https': proxy_url})
+            opener = urllib.request.build_opener(proxy_handler)
+        else:
+            opener = urllib.request.build_opener()
+            
+        with opener.open(full_url, timeout=10) as response:
+            res_body = response.read().decode()
+            print(f"DEBUG: Telegram API Success for {chat_id}: {res_body}")
             return response.getcode() == 200
+            
     except Exception as e:
-        print(f"Telegram notification failed: {e}")
+        print(f"DEBUG: Telegram notification FAILED for {chat_id}: {e}")
         return False
 
 # --- Middleware / Helpers ---
@@ -317,15 +331,19 @@ def handle_clear_history():
 @socketio.on('ping')
 def handle_ping():
     sender = active_sessions.get(request.sid, 'Unknown')
+    print(f"DEBUG: Received ping request from {sender} (SID: {request.sid})")
     # Determine the recipient (the other user in this two-user app)
     recipient = "sana" if sender == "ayhan" else "ayhan"
     
     # Send telegram message to the recipient's registered ID
     recipient_tg_id = USER_TELEGRAM_MAPPING.get(recipient)
     if recipient_tg_id:
+        print(f"DEBUG: Triggering Telegram notification for recipient: {recipient} (ID: {recipient_tg_id})")
         # Run in a thread to avoid blocking the socket event loop
         threading.Thread(target=send_telegram_notification, 
                          args=(recipient_tg_id, "dont forget to study your lessons")).start()
+    else:
+        print(f"DEBUG: No Telegram ID found for recipient: {recipient}")
                          
     emit('ping', {'user': sender}, room='secure_channel', include_self=False)
 
