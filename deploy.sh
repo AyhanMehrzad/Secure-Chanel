@@ -49,8 +49,10 @@ source "$VENV_DIR/bin/activate"
 
 # Install Python dependencies
 if [ -f "$PROJECT_DIR/requirements.txt" ]; then
-    log_info "Installing Python dependencies..."
-    pip install -r "$PROJECT_DIR/requirements.txt"
+    log_info "Installing Python dependencies (with system override for Ubuntu 24.04)..."
+    # Use --break-system-packages to allow root installation on newer Ubuntu versions
+    # and --ignore-installed to ensure we get the versions we want in the venv
+    "$VENV_DIR/bin/pip" install --break-system-packages --ignore-installed -r "$PROJECT_DIR/requirements.txt"
 else
     log_error "requirements.txt not found!"
     exit 1
