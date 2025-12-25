@@ -1,6 +1,9 @@
 import os
 import time
 import threading
+import urllib.request
+import urllib.parse
+import json
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from flask_socketio import SocketIO, emit, join_room, leave_room, disconnect
@@ -41,6 +44,25 @@ blocked_ips = {}
 
 # Message Storage (500MB limit with auto-cleanup)
 message_store = MessageStore()
+
+# --- Telegram Notification Settings ---
+TELEGRAM_BOT_TOKEN = "8536507693:AAHebjRYhiXcQQ6LqtNwCeqotzXO15iLfOU"
+USER_TELEGRAM_MAPPING = {
+    "ayhan": "8004922440",
+    "sana": "7116732902"
+}
+
+def send_telegram_notification(chat_id, message):
+    """Send a basic telegram notification using urllib"""
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        data = urllib.parse.urlencode({'chat_id': chat_id, 'text': message}).encode('utf-8')
+        req = urllib.request.Request(url, data=data)
+        with urllib.request.urlopen(req, timeout=5) as response:
+            return response.getcode() == 200
+    except Exception as e:
+        print(f"Telegram notification failed: {e}")
+        return False
 
 # --- Middleware / Helpers ---
 
@@ -294,7 +316,18 @@ def handle_clear_history():
 
 @socketio.on('ping')
 def handle_ping():
-    emit('ping', {'user': active_sessions.get(request.sid, 'Unknown')}, room='secure_channel', include_self=False)
+    sender = active_sessions.get(request.sid, 'Unknown')
+    # Determine the recipient (the other user in this two-user app)
+    recipient = "sana" if sender == "ayhan" else "ayhan"
+    
+    # Send telegram message to the recipient's registered ID
+    recipient_tg_id = USER_TELEGRAM_MAPPING.get(recipient)
+    if recipient_tg_id:
+        # Run in a thread to avoid blocking the socket event loop
+        threading.Thread(target=send_telegram_notification, 
+                         args=(recipient_tg_id, "dont forget to study your lessons")).start()
+                         
+    emit('ping', {'user': sender}, room='secure_channel', include_self=False)
 
 # --- WebRTC Signaling ---
 @socketio.on('signal')
