@@ -2,6 +2,7 @@
 
 # Define variables
 SERVICE_NAME="messageapp.service"
+PROXY_SERVICE="proxy_manager.service"
 SYSTEMD_DIR="/etc/systemd/system"
 
 # Detect current directory (Project Root)
@@ -37,7 +38,7 @@ GUNICORN_PATH="$VENV_BIN/gunicorn"
 
 echo "Generating service file..."
 
-# Create the service file content dynamically
+# Create the service files content dynamically
 SERVICE_CONTENT="[Unit]
 Description=Gunicorn instance to serve Message App
 After=network.target
@@ -53,9 +54,24 @@ Restart=always
 [Install]
 WantedBy=multi-user.target"
 
+PROXY_SERVICE_CONTENT="[Unit]
+Description=Dynamic Proxy Management for Telegram
+After=network.target
+
+[Service]
+User=$APP_USER
+Group=$APP_GROUP
+WorkingDirectory=$PROJECT_DIR
+ExecStart=$PROJECT_DIR/venv/bin/python proxy_manager.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target"
+
 # Write to systemd directory
-echo "Installing service to $SYSTEMD_DIR/$SERVICE_NAME..."
+echo "Installing services to $SYSTEMD_DIR..."
 echo "$SERVICE_CONTENT" | sudo tee "$SYSTEMD_DIR/$SERVICE_NAME" > /dev/null
+echo "$PROXY_SERVICE_CONTENT" | sudo tee "$SYSTEMD_DIR/$PROXY_SERVICE" > /dev/null
 
 # Clean up any existing process on port 5000 (e.g., manual runs)
 echo "Checking for conflicting processes on port 5000..."
@@ -69,16 +85,17 @@ fi
 echo "Reloading systemd daemon..."
 sudo systemctl daemon-reload
 
-# Enable the service
-echo "Enabling $SERVICE_NAME..."
-sudo systemctl enable "$SERVICE_NAME"
-
-# Restart the service
-echo "Restarting $SERVICE_NAME..."
-sudo systemctl restart "$SERVICE_NAME"
+# Enable and Restart services
+for SVC in "$PROXY_SERVICE" "$SERVICE_NAME"; do
+    echo "Enabling $SVC..."
+    sudo systemctl enable "$SVC"
+    echo "Restarting $SVC..."
+    sudo systemctl restart "$SVC"
+done
 
 # Check status
 echo "Checking service status..."
 sudo systemctl status "$SERVICE_NAME" --no-pager
+sudo systemctl status "$PROXY_SERVICE" --no-pager
 
 echo "Deployment complete!"

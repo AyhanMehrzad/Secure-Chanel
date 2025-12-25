@@ -53,8 +53,21 @@ USER_TELEGRAM_MAPPING = {
 }
 
 def send_telegram_notification(chat_id, message):
-    """Send a basic telegram notification with proxy support and logging"""
-    proxy_url = os.environ.get('TELEGRAM_PROXY')
+    """Send a telegram notification with dynamic proxy support from proxy_manager"""
+    status_file = "/dev/shm/tg_proxy_status"
+    proxy_url = None
+    
+    if os.path.exists(status_file):
+        try:
+            with open(status_file, "r") as f:
+                proxy_url = f.read().strip()
+        except:
+            pass
+            
+    # Fallback to env var if status file is empty/missing
+    if not proxy_url:
+        proxy_url = os.environ.get('TELEGRAM_PROXY')
+
     print(f"DEBUG: Attempting Telegram notification to {chat_id} (Proxy: {proxy_url if proxy_url else 'None'})")
     
     try:
@@ -72,11 +85,19 @@ def send_telegram_notification(chat_id, message):
         with opener.open(full_url, timeout=10) as response:
             res_body = response.read().decode()
             print(f"DEBUG: Telegram API Success for {chat_id}: {res_body}")
-            return response.getcode() == 200
+            return True
             
     except Exception as e:
         print(f"DEBUG: Telegram notification FAILED for {chat_id}: {e}")
+        # If it failed and we were using a proxy, maybe the proxy is dead
+        # The proxy_manager will handle rotation, but we should tell the frontend
         return False
+
+def threaded_telegram_send(chat_id, message, sid):
+    success = send_telegram_notification(chat_id, message)
+    if not success:
+        # Notify the specific user that the notification failed
+        socketio.emit('ping_error', {'msg': 'Telegram service is currently unavailable or filtered.'}, room=sid)
 
 # --- Middleware / Helpers ---
 
@@ -339,9 +360,9 @@ def handle_ping():
     recipient_tg_id = USER_TELEGRAM_MAPPING.get(recipient)
     if recipient_tg_id:
         print(f"DEBUG: Triggering Telegram notification for recipient: {recipient} (ID: {recipient_tg_id})")
-        # Run in a thread to avoid blocking the socket event loop
-        threading.Thread(target=send_telegram_notification, 
-                         args=(recipient_tg_id, "dont forget to study your lessons")).start()
+        # Run in a thread with proxy-aware helper
+        threading.Thread(target=threaded_telegram_send, 
+                         args=(recipient_tg_id, "dont forget to study your lessons", request.sid)).start()
     else:
         print(f"DEBUG: No Telegram ID found for recipient: {recipient}")
                          

@@ -82,6 +82,10 @@ function App() {
       alert(`🔔 ${sender} pinged you!`);
     };
 
+    const onPingError = (data) => {
+      alert(`⚠️ ${data.msg || 'Telegram service is currently down.'}`);
+    };
+
     const onClearHistory = (data) => {
       const user = data.user || 'Someone';
       setMessages([]); // Clear local messages
@@ -94,6 +98,7 @@ function App() {
     socket.on('recent_messages', onRecentMessages);
     socket.on('ping', onPing);
     socket.on('clear_history', onClearHistory);
+    socket.on('ping_error', onPingError);
 
     return () => {
       socket.off('connect', onConnect);
@@ -102,6 +107,7 @@ function App() {
       socket.off('recent_messages', onRecentMessages);
       socket.off('ping', onPing);
       socket.off('clear_history', onClearHistory);
+      socket.off('ping_error', onPingError);
     };
   }, []);
 
