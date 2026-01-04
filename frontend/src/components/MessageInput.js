@@ -466,7 +466,7 @@ const MessageInput = forwardRef(({ onSend, onSocketAction }, ref) => {
                         padding: '6px 12px',
                         boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
                     }}>
-                        {/* Attachment / Bot Menu (MOVED INSIDE) */}
+                        {/* Attachment / Bot Menu */}
                         <AnimatePresence mode="wait">
                             {text.startsWith('/') ? (
                                 <motion.button
@@ -507,67 +507,58 @@ const MessageInput = forwardRef(({ onSend, onSocketAction }, ref) => {
                             onKeyDown={handleKeyDown}
                             rows={1}
                             disabled={isUploading}
-                            style={{ flex: 1, border: 'none', outline: 'none', resize: 'none', fontSize: '16px', maxHeight: '100px', padding: '4px 0', fontFamily: 'inherit' }}
+                            style={{ flex: 1, border: 'none', outline: 'none', resize: 'none', fontSize: '16px', maxHeight: '100px', padding: '10px 0', fontFamily: 'inherit', color: 'black' }}
                         />
 
-                        {/* Emoji Icon (NEW) */}
-                        <button
-                            className="emoji-btn"
-                            onClick={() => {/* Toggle Emoji Picker */ }}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', marginLeft: '8px', color: '#707579' }}
-                        >
-                            😊
-                        </button>
-                    </div>
-
-                    {/* Morphing Send/Mic Button (MOVED OUTSIDE) */}
-                    <div className="action-btn-circle" style={{ width: '48px', height: '48px', flexShrink: 0 }}>
-                        <AnimatePresence mode="popLayout">
-                            {text.trim() ? (
-                                <motion.button
-                                    key="send"
-                                    className="send-btn-pill"
-                                    onClick={handleSend}
-                                    variants={iconVariants}
-                                    initial="initial"
-                                    animate="animate"
-                                    exit="exit"
-                                    whileTap="tap"
-                                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                                    style={{
-                                        width: '100%', height: '100%', borderRadius: '50%',
-                                        background: '#3390ec', color: '#fff', border: 'none',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        cursor: 'pointer', fontSize: '20px'
-                                    }}
-                                >
-                                    ➤
-                                </motion.button>
-                            ) : (
-                                <motion.div
-                                    key="media"
-                                    className="media-gesture-btn"
-                                    onPointerDown={handlePointerDown}
-                                    onPointerUp={handlePointerUp}
-                                    onPointerMove={handlePointerMove}
-                                    onPointerLeave={cancelRecording} // Safety
-                                    variants={iconVariants}
-                                    initial="initial"
-                                    animate="animate"
-                                    exit="exit"
-                                    whileTap="tap"
-                                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                                    style={{
-                                        width: '100%', height: '100%', borderRadius: '50%',
-                                        background: '#f5f5f5', color: '#707579', // Telegram-style grey circle? Or maybe transparent if default
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        cursor: 'pointer', fontSize: '24px'
-                                    }}
-                                >
-                                    {mediaMode === 'audio' ? '🎤' : '📹'}
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                        {/* Merged Send/Mic/Video Action Button */}
+                        <div style={{ width: '40px', height: '40px', flexShrink: 0, marginLeft: '8px' }}>
+                            <AnimatePresence mode="popLayout">
+                                {text.trim() ? (
+                                    <motion.button
+                                        key="send"
+                                        className="send-btn-pill"
+                                        onClick={handleSend}
+                                        variants={iconVariants}
+                                        initial="initial"
+                                        animate="animate"
+                                        exit="exit"
+                                        whileTap="tap"
+                                        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                                        style={{
+                                            width: '100%', height: '100%', borderRadius: '50%',
+                                            background: 'none', color: '#3390ec', border: 'none',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            cursor: 'pointer', fontSize: '24px'
+                                        }}
+                                    >
+                                        ➤
+                                    </motion.button>
+                                ) : (
+                                    <motion.div
+                                        key="media"
+                                        className="media-gesture-btn"
+                                        onPointerDown={handlePointerDown}
+                                        onPointerUp={handlePointerUp}
+                                        onPointerMove={handlePointerMove}
+                                        onPointerLeave={cancelRecording} // Safety
+                                        variants={iconVariants}
+                                        initial="initial"
+                                        animate="animate"
+                                        exit="exit"
+                                        whileTap="tap"
+                                        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                                        style={{
+                                            width: '100%', height: '100%', borderRadius: '50%',
+                                            background: 'none', color: '#707579',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            cursor: 'pointer', fontSize: '24px'
+                                        }}
+                                    >
+                                        {mediaMode === 'audio' ? '🎤' : '📹'}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
                     </div>
                 </div>
             )}

@@ -19,11 +19,11 @@ const Message = ({ msg, user, setReplyTo, onContextMenu }) => {
   const isMe = msg.user === user;
   const controls = useAnimation();
   const x = useMotionValue(0);
-  const opacity = useTransform(x, [-100, 0], [0, 1]); // Fade reply icon icon
+  const opacity = useTransform(x, [0, 100], [0, 1]); // Fade reply icon icon
 
   // Haptic Feedback Logic
   const handleDragEnd = (_, info) => {
-    if (info.offset.x < -60) {
+    if (info.offset.x > 60) {
       // Trigger Reply
       if (navigator.vibrate) navigator.vibrate(10);
       setReplyTo(msg);
@@ -99,13 +99,13 @@ const Message = ({ msg, user, setReplyTo, onContextMenu }) => {
         className={`message ${isMe ? 'me' : 'other'} ${msg.type}`}
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={{ left: 0.5, right: 0 }}
+        dragElastic={{ left: 0, right: 0.5 }}
         onDragEnd={handleDragEnd}
         animate={controls}
         whileDrag={{ scale: 0.98 }}
       >
-        {/* Reply Icon (Hidden until swiped) */}
-        <motion.div style={{ position: 'absolute', right: -40, top: '50%', y: '-50%', opacity: useTransform(x, [-60, 0], [1, 0]) }}>
+        {/* Reply Icon (Hidden until swiped) - Moved to LEFT */}
+        <motion.div style={{ position: 'absolute', left: -40, top: '50%', y: '-50%', opacity: useTransform(x, [0, 60], [0, 1]) }}>
           ↩
         </motion.div>
 

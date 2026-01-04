@@ -4,7 +4,6 @@ python-multipart
 python-socketio
 aiofiles
 jinja2
-pywebpush
 # Legacy Flask dependencies (can be removed later)
 # flask
 # flask-socketio

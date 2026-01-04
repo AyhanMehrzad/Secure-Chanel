@@ -10,15 +10,7 @@ from flask_socketio import SocketIO, emit, join_room, leave_room, disconnect
 from flask_cors import CORS
 from flask_sock import Sock
 from message_store import MessageStore
-from notification_manager import NotificationManager
-from pywebpush import webpush, WebPushException
 import subprocess
-
-# --- VAPID KEYS ---
-VAPID_PRIVATE_KEY = "4vwtQqLRBgbRRvozry3Wqrz9meVtBqcEpahasFoOqf4"
-VAPID_CLAIMS = {
-    "sub": "mailto:admin@securechanel.xyz"
-}
 
 app = Flask(__name__)
 sock = Sock(app)
@@ -54,9 +46,7 @@ active_sessions = {}
 blocked_ips = {}
 
 # Message Storage (500MB limit with auto-cleanup)
-# Message Storage (500MB limit with auto-cleanup)
 message_store = MessageStore()
-notification_manager = NotificationManager()
 
 # --- Telegram Notification Settings ---
 TELEGRAM_BOT_TOKEN = "8536507693:AAHebjRYhiXcQQ6LqtNwCeqotzXO15iLfOU"
@@ -111,37 +101,6 @@ def threaded_telegram_send(chat_id, message, sid):
     if not success:
         # Notify the specific user that the notification failed
         socketio.emit('ping_error', {'msg': 'Telegram service is currently unavailable or filtered.'}, room=sid)
-
-def send_web_push(username, message_data):
-    """Send Web Push Notification to offline user"""
-    subscriptions = notification_manager.get_subscriptions(username)
-    if not subscriptions:
-        print(f"DEBUG: No push subscriptions found for {username}")
-        return
-
-    payload = json.dumps({
-        "title": f"New message from {message_data.get('user', 'Someone')}",
-        "body": message_data.get('msg', 'Sent a file'),
-        "url": "/" 
-    })
-
-    print(f"DEBUG: Sending Web Push to {len(subscriptions)} endpoints for {username}")
-    
-    for sub in subscriptions:
-        try:
-            webpush(
-                subscription_info=sub,
-                data=payload,
-                vapid_private_key=VAPID_PRIVATE_KEY,
-                vapid_claims=VAPID_CLAIMS
-            )
-        except WebPushException as ex:
-            print(f"Web Push Failed: {ex}")
-            # If 410 Gone, remove subscription
-            if ex.response and ex.response.status_code == 410:
-                notification_manager.remove_subscription(sub['endpoint'])
-        except Exception as e:
-            print(f"General Push Error: {e}")
 
 # --- Middleware / Helpers ---
 
@@ -322,26 +281,7 @@ def upload_file():
             return jsonify({'url': url, 'filename': filename}), 200
         except Exception as e:
             print(f"Upload error: {e}")
-            print(f"Upload error: {e}")
             return jsonify({'error': 'Upload failed'}), 500
-
-@app.route('/api/subscribe', methods=['POST'])
-def subscribe_push():
-    """Handle Web Push Subscriptions"""
-    if 'user' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    data = request.json
-    subscription = data.get('subscription')
-    user_agent = data.get('user_agent', '')
-    
-    if not subscription:
-        return jsonify({'error': 'Missing subscription'}), 400
-
-    success = notification_manager.add_subscription(session['user'], subscription, user_agent)
-    if success:
-        return jsonify({'status': 'success'}), 200
-    return jsonify({'error': 'Failed to save subscription'}), 500
 
 @sock.route('/ws/chat/stream')
 def handle_stream(ws):
@@ -490,20 +430,6 @@ def handle_message(data):
     
     emit('chat_message', message_data, room='secure_channel', include_self=True)
 
-    # --- HYBRID NOTIFICATION LOGIC ---
-    # Check if recipient is connected. Since we are in a group room 'secure_channel',
-    # we iterate over potential recipients (hardcoded logic for 2-user prototype)
-    sender = username
-    recipient = "sana" if sender == "ayhan" else "ayhan" # Logic for 2-user demo
-    
-    # Check if recipient is online
-    recipient_online = any(u == recipient for u in active_sessions.values())
-    
-    if not recipient_online:
-         print(f"DEBUG: {recipient} is OFFLINE. Triggering Web Push.")
-         # Send Web Push
-         threading.Thread(target=send_web_push, args=(recipient, message_data)).start()
-
 
 @socketio.on('clear_history')
 def handle_clear_history():
@@ -535,10 +461,6 @@ def handle_ping():
         
         # Trigger FCM PING (Background Task)
         threading.Thread(target=threaded_fcm_ping, args=(recipient,)).start()
-
-        # Trigger Web Push for Ping
-        ping_data = {'user': sender, 'msg': '📌 PINGED YOU!'}
-        threading.Thread(target=send_web_push, args=(recipient, ping_data)).start()
     else:
         print(f"DEBUG: No Telegram ID found for recipient: {recipient}")
                          

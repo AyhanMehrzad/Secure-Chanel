@@ -1,5 +1,4 @@
 import React, { useState, useEffect, lazy, Suspense, useCallback, useRef } from 'react';
-import { registerPushNotifications, sendSubscriptionToBackend } from './utils/pushNotifications';
 import { io } from 'socket.io-client';
 import './App.css';
 
@@ -46,12 +45,6 @@ function App() {
           if (!socket.connected) {
             socket.connect();
           }
-          // Register for Push Notifications
-          registerPushNotifications().then(subscription => {
-            if (subscription) {
-              sendSubscriptionToBackend(subscription, data.username);
-            }
-          });
         }
         setLoading(false);
       })
